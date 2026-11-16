@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>アニメーション制作プロンプトジェネレーター</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased">
+    <div class="max-w-5xl mx-auto px-4 py-8">
+        <!-- ヘッダー -->
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold tracking-tight text-indigo-400 mb-2">🎬 アニメーション制作プロンプトジェネレーター</h1>
+            <p class="text-slate-400 text-sm">人間が考えた核となるストーリーを元に、LLM（GPT / Gemini）から高品質なシナリオ・コマワリ・台本・絵コンテ（テキスト構成案）を引き出すための専用プロンプトを構築します。</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- 入力フォームエリア -->
+            <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700 space-y-6">
+                <h2 class="text-xl font-semibold text-indigo-300 border-b border-slate-700 pb-2">1. 基本情報・目的</h2>
+                
+                <!-- タイトル設定 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">作品タイトル</label>
+                        <input type="text" id="workTitle" placeholder="例：大学紹介ショートアニメ" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">各話タイトル / サブタイトル</label>
+                        <input type="text" id="episodeTitle" placeholder="例：第1話 キャンパスライフの扉" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- 時間・目的 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">想定時間 (分)</label>
+                        <input type="number" id="duration" value="3" min="0.5" step="0.5" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">アニメーションの目的</label>
+                        <select id="purposeType" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" onchange="toggleCustomPurpose()">
+                            <option value="教育系コンテンツ">教育系コンテンツ</option>
+                            <option value="エンタメ系コンテンツ">エンタメ系コンテンツ</option>
+                            <option value="広報系コンテンツ">広報系コンテンツ</option>
+                            <option value="研究紹介・プロモーション">研究紹介・プロモーション</option>
+                            <option value="その他">その他（自由記述）</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="customPurposeContainer" class="hidden">
+                    <label class="block text-xs font-medium text-slate-300 mb-1">その他の目的を具体的に</label>
+                    <input type="text" id="customPurpose" placeholder="例：地域住民参加型のワークショップ用導入アニメ" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+
+                <!-- 映像トーン・演出スタイル -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">映像トーン・演出スタイル</label>
+                    <select id="visualStyle" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="2Dアニメーション風（親しみやすいフラットデザイン）">2Dアニメーション風（親しみやすいフラットデザイン）</option>
+                        <option value="シネマティック・ドラマチックな演出">シネマティック・ドラマチックな演出</option>
+                        <option value="スタイリッシュなインフォグラフィック・解説アニメ調">スタイリッシュなインフォグラフィック・解説アニメ調</option>
+                        <option value="温かみのある手描きスケッチ・絵本風">温かみのある手描きスケッチ・絵本風</option>
+                        <option value="テンポの良いポップなコメディタッチ">テンポの良いポップなコメディタッチ</option>
+                    </select>
+                </div>
+
+                <!-- キャラクター設定セクション -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center border-t border-slate-700 pt-4">
+                        <h2 class="text-xl font-semibold text-indigo-300">2. キャラクター設定</h2>
+                        <button onclick="addCharacter()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">+ キャラクター追加</button>
+                    </div>
+                    <div id="characterList" class="space-y-3">
+                        <div class="char-row bg-slate-900 p-3 rounded-lg border border-slate-700 space-y-2 relative">
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" placeholder="名前 (例: アカイ)" class="char-name bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">
+                                <input type="text" placeholder="役柄 (例: 研究室の教授)" class="char-role bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">
+                            </div>
+                            <input type="text" placeholder="性格・口調・特徴 (例: 熱血で分かりやすく説明するのが好き)" class="char-trait w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ストーリー & 要望 -->
+                <div class="space-y-4 border-t border-slate-700 pt-4">
+                    <h2 class="text-xl font-semibold text-indigo-300">3. ストーリー & 要望・修正指示</h2>
+                    
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">大まかなストーリー（人間のアイデア・プロットの核）</label>
+                        <textarea id="coreStory" rows="4" placeholder="例：主人公がAIと出会い、最初は戸惑うが、一緒に試行錯誤するうちに新しいデジタルアートの可能性に気づき、最後は笑顔で完成させる。" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">ご要望・修正指示（初回は「特になし」、2回目以降は修正点を記入）</label>
+                        <textarea id="userFeedback" rows="3" placeholder="例：第2シーンのテンポをもう少し早くしてほしい。専門用語を減らして一般向けに分かりやすく。" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">特になし</textarea>
+                    </div>
+                </div>
+
+                <button onclick="generatePrompt()" class="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-[0.99]">
+                    🚀 LLM用プロンプトを生成する
+                </button>
+            </div>
+
+            <!-- 出力結果エリア -->
+            <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700 flex flex-col h-full">
+                <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                    <h2 class="text-xl font-semibold text-indigo-300">生成されたLLM用プロンプト</h2>
+                    <button onclick="copyPrompt()" class="bg-slate-700 hover:bg-slate-600 text-indigo-300 text-xs font-medium px-3 py-1.5 rounded-lg transition">📋 コピーする</button>
+                </div>
+                <div class="flex-grow">
+                    <textarea id="outputPrompt" readonly rows="22" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-4 text-xs font-mono text-slate-300 focus:outline-none resize-none" placeholder="左側のフォームに入力し、「LLM用プロンプトを生成する」ボタンを押すと、ここにプロンプトが出力されます。"></textarea>
+                </div>
+                <p class="text-xs text-slate-400 mt-3">💡 このプロンプトをそのまま ChatGPT や Gemini に入力してください。人間が考えたストーリーを元に、LLMがテキスト形式で「絵コンテ（画面構成・カメラワーク）」まで含めて詳細に組み立ててくれます。</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleCustomPurpose() {
+            const select = document.getElementById('purposeType');
+            const customContainer = document.getElementById('customPurposeContainer');
+            if (select.value === 'その他') {
+                customContainer.classList.remove('hidden');
+            } else {
+                customContainer.classList.add('hidden');
+            }
+        }
+
+        function addCharacter() {
+            const container = document.getElementById('characterList');
+            const div = document.createElement('div');
+            div.className = 'char-row bg-slate-900 p-3 rounded-lg border border-slate-700 space-y-2 relative';
+            div.innerHTML = `
+                <div class="flex justify-end">
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-rose-400 hover:text-rose-300 text-xs">削除</button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" placeholder="名前" class="char-name bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">
+                    <input type="text" placeholder="役柄" class="char-role bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">
+                </div>
+                <input type="text" placeholder="性格・口調・特徴" class="char-trait w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">
+            `;
+            container.appendChild(div);
+        }
+
+        function generatePrompt() {
+            const workTitle = document.getElementById('workTitle').value || '無題のアニメーション作品';
+            const episodeTitle = document.getElementById('episodeTitle').value || '第1話';
+            const duration = document.getElementById('duration').value || '3';
+            
+            let purpose = document.getElementById('purposeType').value;
+            if (purpose === 'その他') {
+                purpose = document.getElementById('customPurpose').value || '自由目的';
+            }
+
+            const visualStyle = document.getElementById('visualStyle').value;
+            const coreStory = document.getElementById('coreStory').value || '（ストーリーの記述なし）';
+            const userFeedback = document.getElementById('userFeedback').value || '特になし';
+
+            // キャラクター情報の収集
+            let charsText = '';
+            const charRows = document.querySelectorAll('.char-row');
+            charRows.forEach((row, index) => {
+                const name = row.querySelector('.char-name').value || `キャラクター${index + 1}`;
+                const role = row.querySelector('.char-role').value || '未設定';
+                const trait = row.querySelector('.char-trait').value || '特になし';
+                charsText += `- 名前: ${name} / 役柄: ${role} / 性格・特徴: ${trait}\n`;
+            });
+            if (!charsText) charsText = '特になし\n';
+
+            // LLMへの指示プロンプトの組み立て（テキストベースの絵コンテ・演出指示を求める形に変更）
+            const promptContent = `あなたはプロフェッショナルなアニメーション演出家・脚本家です。
+以下の入力情報・人間が考えた大まかなストーリーをベースにして、アニメーションの「全体構成」「詳細シナリオ」「台本」「テキスト形式の絵コンテ（画面レイアウト・カメラワーク・演出指示）」を統合的に作成してください。
+
+【作品情報】
+- 作品タイトル: ${workTitle}
+- 各話タイトル: ${episodeTitle}
+- 想定時間: 約 ${duration} 分
+- アニメーションの目的: ${purpose}
+- 映像トーン・演出スタイル: ${visualStyle}
+
+【登場人物設定】
+${charsText}
+【人間のベースストーリー（核）】
+${coreStory}
+
+【前回の修正・要望指示】
+${userFeedback}
+
+---
+【出力してほしい構成】
+以下の4つのセクションに分けて、詳細かつ具体的に出力してください。
+
+1. 【全体構成とシーン配分（コマワリ計画）】
+   - ${duration}分間の尺に合わせたシーン別の時間配分、各シーンの目的と展開。
+2. 【詳細シナリオ】
+   - 映像の情景描写とストーリーの展開。
+3. 【台本（セリフ・ナレーション）】
+   - キャラクターのセリフ、掛け合い、ナレーション。口調や性格を反映させてください。
+4. 【絵コンテ構成案（シーン別ビジュアル・演出指示）】
+   - 各シーンごとに、画面に何が映っているかの視覚的描写、カメラワーク（引き、寄り、パンなど）、キャラクターの動きや表情、効果音やBGMの指示をテキストで分かりやすくまとめてください。`;
+
+            document.getElementById('outputPrompt').value = promptContent;
+        }
+
+        function copyPrompt() {
+            const output = document.getElementById('outputPrompt');
+            if (!output.value) {
+                alert('先にプロンプトを生成してください。');
+                return;
+            }
+            output.select();
+            document.execCommand('copy');
+            alert('プロンプトをクリップボードにコピーしました！');
+        }
+    </script>
+</body>
+</html>
