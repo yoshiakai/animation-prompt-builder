@@ -67,11 +67,19 @@
                 </div>
 
                 <!-- キャラクター設定セクション -->
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center border-t border-slate-700 pt-4">
+                <div class="space-y-3 border-t border-slate-700 pt-4">
+                    <div class="flex flex-wrap justify-between items-center gap-2">
                         <h2 class="text-xl font-semibold text-indigo-300">2. キャラクター設定</h2>
-                        <button onclick="addCharacter()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">+ キャラクター追加</button>
+                        <div class="flex gap-2">
+                            <button onclick="addCharacter()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg transition">+ 追加</button>
+                            <button onclick="exportCharacterFile()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg transition">💾 ファイル保存</button>
+                            <label class="bg-slate-700 hover:bg-slate-600 text-indigo-300 text-xs font-medium px-2.5 py-1.5 rounded-lg transition cursor-pointer">
+                                📂 ファイル読込
+                                <input type="file" id="importFile" accept=".json" class="hidden" onchange="importCharacterFile(event)">
+                            </label>
+                        </div>
                     </div>
+
                     <div id="characterList" class="space-y-3">
                         <div class="char-row bg-slate-900 p-3 rounded-lg border border-slate-700 space-y-2 relative">
                             <div class="grid grid-cols-2 gap-2">
@@ -128,7 +136,7 @@
             }
         }
 
-        function addCharacter() {
+        function addCharacter(name = '', role = '', trait = '') {
             const container = document.getElementById('characterList');
             const div = document.createElement('div');
             div.className = 'char-row bg-slate-900 p-3 rounded-lg border border-slate-700 space-y-2 relative';
@@ -137,12 +145,64 @@
                     <button onclick="this.parentElement.parentElement.remove()" class="text-rose-400 hover:text-rose-300 text-xs">削除</button>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
-                    <input type="text" placeholder="名前" class="char-name bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">
-                    <input type="text" placeholder="役柄" class="char-role bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">
+                    <input type="text" placeholder="名前" value="${name}" class="char-name bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">
+                    <input type="text" placeholder="役柄" value="${role}" class="char-role bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">
                 </div>
-                <input type="text" placeholder="性格・口調・特徴" class="char-trait w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">
+                <input type="text" placeholder="性格・口調・特徴" value="${trait}" class="char-trait w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">
             `;
             container.appendChild(div);
+        }
+
+        // キャラクター設定をJSONファイルとしてダウンロード（エクスポート）
+        function exportCharacterFile() {
+            const chars = [];
+            const charRows = document.querySelectorAll('.char-row');
+            charRows.forEach(row => {
+                chars.push({
+                    name: row.querySelector('.char-name').value,
+                    role: row.querySelector('.char-role').value,
+                    trait: row.querySelector('.char-trait').value
+                });
+            });
+
+            if (chars.length === 0) {
+                alert('保存するキャラクターが入力されていません。');
+                return;
+            }
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(chars, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "animation_characters.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        // JSONファイルからキャラクター設定を読み込み（インポート）
+        function importCharacterFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const chars = JSON.parse(e.target.result);
+                    if (!Array.isArray(chars)) throw new Error('Invalid format');
+
+                    // リストをクリアして読み込んだデータを反映
+                    document.getElementById('characterList').innerHTML = '';
+                    chars.forEach(c => {
+                        addCharacter(c.name || '', c.role || '', c.trait || '');
+                    });
+                    alert('キャラクター設定ファイルを正常に読み込みました！');
+                } catch (err) {
+                    alert('ファイルの読み込みに失敗しました。正しいキャラクターJSONファイルを選択してください。');
+                }
+                // ファイル入力をリセット（同じファイルを再度選べるように）
+                event.target.value = '';
+            };
+            reader.readAsText(file);
         }
 
         function generatePrompt() {
@@ -170,7 +230,7 @@
             });
             if (!charsText) charsText = '特になし\n';
 
-            // LLMへの指示プロンプトの組み立て（テキストベースの絵コンテ・演出指示を求める形に変更）
+            // LLMへの指示プロンプトの組み立て
             const promptContent = `あなたはプロフェッショナルなアニメーション演出家・脚本家です。
 以下の入力情報・人間が考えた大まかなストーリーをベースにして、アニメーションの「全体構成」「詳細シナリオ」「台本」「テキスト形式の絵コンテ（画面レイアウト・カメラワーク・演出指示）」を統合的に作成してください。
 
